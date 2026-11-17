@@ -759,7 +759,9 @@ function result(mode, k, first, prec, newAch = []) {
   const pr = mode === "p" || mode === "r", ds = JUST || { n: 0, ok: 0 }; JUST = null; // 練習・復習は今日の記録に入れない。自信の当たりは終えた直後だけ出す
   const s = load(), rec = pr ? prec : bookOf(s, mode)[k];
   if (!rec) return home();
-  const list = pr ? prec.list : listOf(mode, k), total = rec.m.reduce((a, b) => a + b, 0), late = mode === "a", text = shareText(mode, k, rec);
+  // 過去の日の並びは、遊んだときに残した種類（rec.k）から作る（作り方を変えても★と種類がずれない。2026-11-17 CodeRabbit）
+  const kept = !pr && Array.isArray(rec.k) && rec.k.length === rec.m.length && rec.k.every((x) => typeof x === "string" && Object.prototype.hasOwnProperty.call(G.BY, x)) ? rec.k.map((x, j) => `${x}|${k}:${mode === "h" ? "h" : "d"}${j}`) : null;
+  const list = pr ? prec.list : kept || listOf(mode, k), total = rec.m.reduce((a, b) => a + b, 0), late = mode === "a", text = shareText(mode, k, rec);
   const showKofi = first && !pr && !late && total === 0 && !s.kofi[k + mode]; // あとから・練習・まちがいのある日には出さない
   if (showKofi) save((s2) => { s2.kofi[k + mode] = 1; });
   app.innerHTML = `

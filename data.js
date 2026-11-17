@@ -3,7 +3,8 @@
 // 保険料・年金の金額は年ごとに変わるので、答えにも問題にも出さない。人はすべて架空で、性別を決めない。
 // 1問は2段：まず「この人は第何号？」（第1号・第2号・第3号）、正解したら「払い方は？」「入る年金は？」「届け出は？」「合う制度は？」のどれか。
 // 乱数 R は呼ぶ回数が毎回同じになるように使う（sort の比較の中では引かない）。同じ tag なら、どの端末でも同じ問題になる。
-// KINDS・言い回し・名前の並びは最後に足すだけにする（並べ替え・削除をすると過去の日の問題が変わる）。
+// 過去の日の問題を変えないために：NAMES・各種類の sit・ages・asks は変えない（数が変わると同じ tag でも別の問題になる）。
+// 種類を足すときは KINDS の最後に、足した日（日本時間）を from に書いて足す。今日の5問・上級は from より前の日には使わない（2026-11-17 CodeRabbit）。
 (function (root) {
   "use strict";
   const LV = ["やさしい", "ふつう", "ひねり"];
@@ -179,7 +180,8 @@
       why: "障害基礎年金（2級以上）を受ける人は、法定免除です。役所に届け出ると、保険料が免除されます。" },
   ];
   const BY = Object.fromEntries(KINDS.map((k) => [k.id, k]));
-  const kindsOf = (lv) => KINDS.filter((k) => k.lv === lv).map((k) => k.id);
+  // date を渡すと、その日に使える種類だけ（from が無いものは第1回からある種類）。練習・とことんは date なしで全部
+  const kindsOf = (lv, date) => KINDS.filter((k) => k.lv === lv && (!date || !k.from || k.from <= date)).map((k) => k.id);
 
   function seedOf(str) { let h = 2166136261; for (const ch of String(str)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -203,12 +205,12 @@
 
   // 今日の5問：やさしい → やさしい → ふつう → ひねり → まとめ（ふつう）。種類は重ねない（game-dev.md 決まり22）
   function dailyTags(date) {
-    const R = rng(seedOf("day:" + date)), e = pickN(R, kindsOf(0), 2), n = pickN(R, kindsOf(1), 2), h = pickN(R, kindsOf(2), 1);
+    const R = rng(seedOf("day:" + date)), e = pickN(R, kindsOf(0, date), 2), n = pickN(R, kindsOf(1, date), 2), h = pickN(R, kindsOf(2, date), 1);
     return [e[0], e[1], n[0], h[0], n[1]].map((id, i) => `${id}|${date}:d${i}`);
   }
   // 上級の3問（ひねりだけ・今日の5問のひねりとは別の種類）
   function hardTags(date) {
-    const dh = dailyTags(date)[3].split("|")[0], R = rng(seedOf("hard:" + date)), h = pickN(R, kindsOf(2).filter((x) => x !== dh), 3);
+    const dh = dailyTags(date)[3].split("|")[0], R = rng(seedOf("hard:" + date)), h = pickN(R, kindsOf(2, date).filter((x) => x !== dh), 3);
     return h.map((id, i) => `${id}|${date}:h${i}`);
   }
 

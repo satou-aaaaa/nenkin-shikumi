@@ -81,6 +81,13 @@ const MJ = { m_gaku: "学生納付特例", m_men: "免除・納付猶予", m_san
   }
   check("今日の5問（やさしい → やさしい → ふつう → ひねり → まとめ、種類は重ねない）と上級（ひねり3・今日のひねりと別）を3年分作れる", bad.length === 0, bad.slice(0, 5).join(","));
   check("2か月のうちに27種類が全部出る・前の日と同じ組の日が少ない", cover.size === 27 && sameAsPrev < 20, `${cover.size}種類・前の日と同じ ${sameAsPrev}日`);
+  // 種類を from 付きで足しても、その日より前の今日の5問・上級は変わらない（2026-11-17 CodeRabbit）
+  { const days = Array.from({ length: 400 }, (_, i) => new Date(d0 + i * 864e5).toISOString().slice(0, 10)), snap = (ds) => ds.map((d) => G.dailyTags(d).join() + "/" + G.hardTags(d).join()).join("\n");
+    const before = snap(days), cut = days[200];
+    for (const lv of [0, 1, 2]) G.KINDS.push({ id: `zz${lv}`, lv, from: cut, go: 1, asks: ["pay"], ages: [30], name: "x", src: [], sit: ["＠"], look: "", why: "" });
+    const after = snap(days), same = before.split("\n").slice(0, 200).join() === after.split("\n").slice(0, 200).join();
+    G.KINDS.splice(-3, 3);
+    check("種類を足した日（from）より前の今日の5問・上級は、足しても変わらない", same && snap(days) === before); }
   const P0 = G.make(G.dailyTags("2026-11-17")[0]);
   check("第1回（2026-11-17）の1問目が作ったときのまま（並べ替え・削除で過去の日の問題を変えない）", `${P0.kind}:${P0.v}` === PIN, `${P0.kind}:${P0.v}`);
 }
@@ -301,6 +308,16 @@ try {
     await q.context().close();
   }
 
+  // 結果の画面は、遊んだときに残した種類（rec.k）から並びを作る（作り方が変わっても★と種類がずれない。2026-11-17 CodeRabbit）
+  {
+    const q = await newPage(); await closeHow(q);
+    const ks = G.KINDS.slice(-5).map((k) => k.id);
+    await q.evaluate(([d, ks]) => { localStorage.setItem("nenkin-v1", JSON.stringify({ v: 1, tut: true, days: { [d]: { m: [0, 0, 0, 0, 0], k: ks } }, hdays: {}, adays: {}, dex: {}, runs: {}, kofi: {}, ach: {}, ebest: 0 })); }, [TODAY, ks]);
+    await q.reload(); await q.waitForTimeout(150); await q.click("#go-d"); await q.waitForTimeout(100);
+    const names = await q.$$eval(".rlist .w b", (b) => b.map((x) => x.textContent));
+    check("結果の画面は、残した種類（rec.k）の順に並ぶ", JSON.stringify(names) === JSON.stringify(ks.map((k) => G.BY[k].name)), names.join(","));
+    await q.context().close();
+  }
   // カレンダー・あとから：過去の日の記録を置いて見る。第1回から日がたっていなくても見られるよう、時計を10日進める
   {
     const SHIFT = 10 * 864e5, TODAY = new Date(Date.now() + 9 * 3600e3 + SHIFT).toISOString().slice(0, 10), dayBefore = (n) => new Date(Date.parse(TODAY) - n * 864e5).toISOString().slice(0, 10);
