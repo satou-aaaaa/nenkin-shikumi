@@ -100,6 +100,7 @@ check("「このゲームについて」の相談先は日本年金機構のペ�
 check("写し元（眠りのコツ・雲の名前あて・噴火警戒レベルよみ）の言葉が残っていない（game-dev.md A 手順5）", !new RegExp(["眠", "睡眠", "寝床", "寝る", "コツ", "医師", "医療", "nmk", "nemuri", "NEMU", "雲", "空の絵", "気象", "噴火", "火山", "警戒レベル", "kumo", "上層", "下層", "高さのなかま", "見抜き", "手口"].join("|")).test(html + gen + readme));
 check("画面にお笑いの言葉を入れない（本物っぽく）", !/お笑い|ギャグ|ツッコミ|なんでやねん|（うそ）/.test(html + gen));
 check("引き継ぎ：transfer.js をゲームの script より前に、このゲームの記録のキー（記録・文字・復習）だけで読む・depth.js も前に読む", /<script src="transfer\.js" data-game="nenkin-shikumi" data-keys="nenkin-v1,nenkin-fs,nenkin-depth"><\/script>\s*<script src="depth\.js" data-game="nenkin-shikumi" data-key="nenkin-depth"><\/script>\s*<\/head>/.test(html) && html.indexOf('src="transfer.js"') < html.indexOf('src="data.js"') && /data-hk/.test(html) && existsSync(path.join(root, "transfer.js")));
+check("知らせ（.toast）は下のボタンを押すのを止めない（pointer-events:none。shared-workflows #327）", /\.toast\{[^}]*pointer-events:none/.test(html));
 check("好きなだけ遊べる：チケット・回数の上限・🔒で開くモードを入れない（game-dev.md F1・F2）", !/🎫|チケット|すると開く|🔒/.test(html) && !/\blife\b|ELIFE/.test(html));
 { const og = (k) => (html.match(new RegExp(`<meta (?:property|name)="${k}" content="([^"]+)"`)) || [])[1] || "";
   const png = readFileSync(path.join(root, "og.png"));
